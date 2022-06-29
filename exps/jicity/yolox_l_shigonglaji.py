@@ -10,11 +10,12 @@ from yolox.exp import Exp as MyExp
 # only need edit here
 VOC_CLASSES = (
     "garbage",
-    "person",
+    "person"
 )
-# ROOT_PATH = "/lzh/datasets/JiCity/ZSgarbage20210630/"
-ROOT_PATH = "/lzh/datasets/JiCity/ZSgarbage_09_26/"
-NAME = "shigonglaji_v2"
+# ROOT_PATH = "/lzh/datasets/JiCity/ZShole20210802/"
+# ROOT_PATH = "/lzh/datasets/JiCity/ZSDXJFhole20211230train/"
+ROOT_PATH = "/home/data/1196"
+NAME = "Shigonglasji"
 IMG_SUFFIX=".jpg"
 
 class Exp(MyExp):
@@ -22,10 +23,18 @@ class Exp(MyExp):
         super(Exp, self).__init__()
         self.num_classes = len(VOC_CLASSES)
         self.depth = 1.0
-        self.width = 1.0
-        self.exp_name = os.path.split(os.path.realpath(__file__))[1].split(".")[0]
+        self.width = 1.0        
+        self.warmup_epochs = 1
 
-    def get_data_loader(self, batch_size, is_distributed, no_aug=False):
+        # ---------- transform config ------------ #
+        self.mosaic_prob = 1.0
+        self.mixup_prob = 1.0
+        self.hsv_prob = 1.0
+        self.flip_prob = 0.5
+        self.exp_name = os.path.split(os.path.realpath(__file__))[1].split(".")[0]
+        self.output_dir = '/project/train/models/'        
+
+    def get_data_loader(self, batch_size, is_distributed, no_aug=False, cache_img=False):
         from yolox.data import (
             EVVOC,
             TrainTransform,
@@ -43,10 +52,9 @@ class Exp(MyExp):
             name=NAME,
             img_suffix=IMG_SUFFIX,
             preproc=TrainTransform(
-                rgb_means=(0.485, 0.456, 0.406),
-                std=(0.229, 0.224, 0.225),
-                max_labels=50,
-            ),
+                    max_labels=50,
+                    flip_prob=self.flip_prob,
+                    hsv_prob=self.hsv_prob)
         )
 
         dataset = MosaicDetection(
@@ -54,17 +62,18 @@ class Exp(MyExp):
             mosaic=not no_aug,
             img_size=self.input_size,
             preproc=TrainTransform(
-                rgb_means=(0.485, 0.456, 0.406),
-                std=(0.229, 0.224, 0.225),
                 max_labels=120,
-            ),
+                flip_prob=self.flip_prob,
+                hsv_prob=self.hsv_prob),
             degrees=self.degrees,
             translate=self.translate,
-            scale=self.scale,
+            mosaic_scale=self.mosaic_scale,
+            mixup_scale=self.mixup_scale,
             shear=self.shear,
-            perspective=self.perspective,
             enable_mixup=self.enable_mixup,
-        )
+            mosaic_prob=self.mosaic_prob,
+            mixup_prob=self.mixup_prob,
+            )
 
         self.dataset = dataset
 
@@ -79,7 +88,6 @@ class Exp(MyExp):
             sampler=sampler,
             batch_size=batch_size,
             drop_last=False,
-            input_dimension=self.input_size,
             mosaic=not no_aug,
         )
 
@@ -99,10 +107,7 @@ class Exp(MyExp):
             root_path=ROOT_PATH,
             name=NAME,
             img_suffix=IMG_SUFFIX,
-            preproc=ValTransform(
-                rgb_means=(0.485, 0.456, 0.406),
-                std=(0.229, 0.224, 0.225),
-            ),
+            preproc=ValTransform(legacy=legacy)
         )
 
         if is_distributed:
@@ -123,10 +128,10 @@ class Exp(MyExp):
 
         return val_loader
 
-    def get_evaluator(self, batch_size, is_distributed, testdev=False):
+    def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
         from yolox.evaluators import VOCEvaluator
 
-        val_loader = self.get_eval_loader(batch_size, is_distributed, testdev=testdev)
+        val_loader = self.get_eval_loader(batch_size, is_distributed, testdev, legacy)
         evaluator = VOCEvaluator(
             dataloader=val_loader,
             img_size=self.test_size,

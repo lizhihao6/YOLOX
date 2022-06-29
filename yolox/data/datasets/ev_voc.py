@@ -167,7 +167,7 @@ class EVVOC(Dataset):
 
         return img, target, img_info, index
 
-    @Dataset.resize_getitem
+    # @Dataset.resize_getitem
     def __getitem__(self, index):
         img, target, img_info, img_id = self.pull_item(index)
 
