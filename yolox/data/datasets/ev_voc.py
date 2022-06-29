@@ -4,6 +4,7 @@
 # https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 # Copyright (c) Francisco Massa.
 # Copyright (c) Ellis Brown, Max deGroot.
+
 # Copyright (c) Megvii, Inc. and its affiliates.
 
 import os
