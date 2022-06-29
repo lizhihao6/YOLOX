@@ -10,9 +10,9 @@ from loguru import logger
 import torch
 import torch.backends.cudnn as cudnn
 
-from yolox.core import Trainer, launch
-from yolox.exp import get_exp
-from yolox.utils import configure_nccl, configure_omp
+from yolox.core import launch
+from yolox.exp import Exp, get_exp
+from yolox.utils import configure_module, configure_nccl, configure_omp, get_num_devices
 
 
 def make_parser():
@@ -39,7 +39,7 @@ def make_parser():
         "--exp_file",
         default=None,
         type=str,
-        help="plz input your expriment description file",
+        help="plz input your experiment description file",
     )
     parser.add_argument(
         "--resume", default=False, action="store_true", help="resume training"
@@ -66,12 +66,27 @@ def make_parser():
         help="Adopting mix precision training.",
     )
     parser.add_argument(
+        "--cache",
+        dest="cache",
+        default=False,
+        action="store_true",
+        help="Caching imgs to RAM for fast training.",
+    )
+    parser.add_argument(
         "-o",
         "--occupy",
         dest="occupy",
         default=False,
         action="store_true",
         help="occupy GPU memory first for training.",
+    )
+    parser.add_argument(
+        "-l",
+        "--logger",
+        type=str,
+        help="Logger to be used for metrics. \
+        Implemented loggers include `tensorboard` and `wandb`.",
+        default="tensorboard"
     )
     parser.add_argument(
         "opts",
@@ -83,7 +98,7 @@ def make_parser():
 
 
 @logger.catch
-def main(exp, args):
+def main(exp: Exp, args):
     if exp.seed is not None:
         random.seed(exp.seed)
         torch.manual_seed(exp.seed)
@@ -99,11 +114,12 @@ def main(exp, args):
     configure_omp()
     cudnn.benchmark = True
 
-    trainer = Trainer(exp, args)
+    trainer = exp.get_trainer(args)
     trainer.train()
 
 
 if __name__ == "__main__":
+    configure_module()
     args = make_parser().parse_args()
     exp = get_exp(args.exp_file, args.name)
     exp.merge(args.opts)
@@ -111,8 +127,8 @@ if __name__ == "__main__":
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
 
-    num_gpu = torch.cuda.device_count() if args.devices is None else args.devices
-    assert num_gpu <= torch.cuda.device_count()
+    num_gpu = get_num_devices() if args.devices is None else args.devices
+    assert num_gpu <= get_num_devices()
 
     dist_url = "auto" if args.dist_url is None else args.dist_url
     launch(

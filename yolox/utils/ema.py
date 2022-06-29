@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-# Copyright (c) 2014-2021 Megvii Inc. All rights reserved.
+# Copyright (c) Megvii Inc. All rights reserved.
 import math
 from copy import deepcopy
 
@@ -12,12 +12,9 @@ __all__ = ["ModelEMA", "is_parallel"]
 
 def is_parallel(model):
     """check if model is in parallel mode."""
-    import apex
-
     parallel_type = (
         nn.parallel.DataParallel,
         nn.parallel.DistributedDataParallel,
-        apex.parallel.distributed.DistributedDataParallel,
     )
     return isinstance(model, parallel_type)
 
