@@ -107,8 +107,6 @@ class Predictor(object):
         self.confthre = confthre
         self.nmsthre = nmsthre
         self.test_size = test_size
-        self.rgb_means = (0.485, 0.456, 0.406)
-        self.std = (0.229, 0.224, 0.225)
 
     def inference(self, img):
         img_info = {"id": 0}
@@ -125,7 +123,7 @@ class Predictor(object):
         img_info["width"] = width
         img_info["raw_img"] = img
 
-        img, ratio = preprocess(img, self.test_size, self.rgb_means, self.std)
+        img, ratio = preprocess(img, self.test_size)
         img_info["ratio"] = ratio
         img = F.expand_dims(mge.tensor(img), 0)
 
@@ -184,7 +182,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
     )
     os.makedirs(save_folder, exist_ok=True)
     if args.demo == "video":
-        save_path = os.path.join(save_folder, args.path.split("/")[-1])
+        save_path = os.path.join(save_folder, os.path.basename(args.path))
     else:
         save_path = os.path.join(save_folder, "camera.mp4")
     logger.info(f"video save_path is {save_path}")
