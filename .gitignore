@@ -222,3 +222,4 @@ core
 nohup.out
 yolox.pt
 .pretrain
+.pretrain/yolox_l.pth.tar
